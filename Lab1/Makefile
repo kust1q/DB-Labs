@@ -4,6 +4,7 @@ CONTAINER := postgres
 
 up:
 	docker-compose up -d
+
 down:
 	docker stop $(CONTAINER)
 
