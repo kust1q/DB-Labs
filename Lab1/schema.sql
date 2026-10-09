@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name    VARCHAR(255) NOT NULL,
     last_name     VARCHAR(255) NOT NULL,
     email         VARCHAR(255) UNIQUE NOT NULL,
-    position      VARCHAR(20) DEFAULT 'developer'
+    position      VARCHAR(20) NOT NULL DEFAULT 'developer'
         CHECK (position IN ('leader', 'manager', 'developer', 'qa', 'designer')),
     organization  VARCHAR(255),
     location      VARCHAR(255),
