@@ -1,9 +1,11 @@
 DROP TABLE IF EXISTS task_comments CASCADE;
+DROP TABLE IF EXISTS task_members CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS sprints CASCADE;
 DROP TABLE IF EXISTS project_members CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS task_parent CASCADE;
 
 CREATE TABLE IF NOT EXISTS users (
     id            BIGSERIAL PRIMARY KEY,
@@ -22,7 +24,6 @@ CREATE TABLE IF NOT EXISTS projects (
     id           BIGSERIAL PRIMARY KEY,
     name         VARCHAR(255) NOT NULL,
     description  TEXT,
-    owner_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     status       VARCHAR(20) NOT NULL DEFAULT 'active'
         CHECK (status IN ('planning', 'active', 'hold', 'completed', 'cancelled')),
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS project_members (
     project_id  BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     user_id     BIGINT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
     role        VARCHAR(20) NOT NULL DEFAULT 'member'
-        CHECK (role IN ('member', 'admin')),
+        CHECK (role IN ('member', 'admin', 'owner')),
     joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (project_id, user_id)
 );
@@ -50,12 +51,10 @@ CREATE TABLE IF NOT EXISTS sprints (
 
 CREATE TABLE IF NOT EXISTS tasks (
     id           BIGSERIAL PRIMARY KEY,
-    project_id   BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    sprint_id    BIGINT REFERENCES sprints(id) ON DELETE SET NULL,
+    sprint_id    BIGINT REFERENCES sprints(id) ON DELETE CASCADE,
     title        VARCHAR(255) NOT NULL,
     description  TEXT,
-    assignee_id  BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    reporter_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    owner_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     status       VARCHAR(20) NOT NULL DEFAULT 'todo'
         CHECK (status IN ('planning', 'todo', 'in_progress', 'in_review',
                           'in_testing', 'ready_to_deploy', 'done', 'cancelled')),
@@ -72,4 +71,17 @@ CREATE TABLE IF NOT EXISTS task_comments (
     comment     TEXT NOT NULL
         CHECK (comment != ''),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS task_members (
+    task_id BIGINT PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+    assignee_id  BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    reporter_id  BIGINT REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE task_parent (
+    parent_id BIGINT REFERENCES tasks(id) ON DELETE CASCADE,
+    task_id   BIGINT REFERENCES tasks(id) ON DELETE CASCADE,
+    PRIMARY KEY (parent_id, task_id),
+    CHECK (parent_id <> task_id)
 );
